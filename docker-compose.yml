@@ -1,0 +1,59 @@
+version: '3'
+services:
+  ############################
+  # Rust app + Dapr sidecar
+  ############################
+  svc-task-details-repository-manager-app:
+    build: ./svc-task-details-repository-manager
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+      - placement
+    networks:
+      - dapr-reconciler-network
+  svc-task-details-repository-manager-dapr:
+    image: "daprio/daprd:edge"
+    command:
+      [
+        "./daprd",
+        "-app-id",
+        "svc-task-details-repository-manager",
+        "-app-port",
+        "8080",
+        "-placement-host-address",
+        "placement:50006",
+        "-dapr-grpc-port",
+        "5005",
+        "--dapr-http-port",
+        "3500",
+        "-components-path",
+        "/dapr-components"
+      ]
+    volumes:
+      - "./components/:/components"
+    depends_on:
+      - svc-task-details-repository-manager-app
+    network_mode: "service:svc-task-details-repository-manager-app"
+
+  ############################
+  # Dapr placement service
+  ############################
+  placement:
+    image: "daprio/dapr"
+    command: [ "./placement", "-port", "50006" ]
+    ports:
+      - "50006:50006"
+    networks:
+      - dapr-reconciler-network
+  ############################
+  # Redis state store
+  ############################
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6380:6379"
+    networks:
+      - dapr-reconciler-network
+networks:
+  dapr-reconciler-network:
