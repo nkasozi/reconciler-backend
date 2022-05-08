@@ -7,9 +7,10 @@ services:
     build: ./svc-task-details-repository-manager
     ports:
       - "8080:8080"
+    expose:
+      - 8080
     depends_on:
       - redis
-      - placement
     networks:
       - dapr-reconciler-network
   svc-task-details-repository-manager-dapr:
@@ -28,10 +29,10 @@ services:
         "--dapr-http-port",
         "3500",
         "-components-path",
-        "/dapr-components"
+        "./dapr-components"
       ]
     volumes:
-      - "./components/:/components"
+      - "./dapr-components/:/dapr-components"
     depends_on:
       - svc-task-details-repository-manager-app
     network_mode: "service:svc-task-details-repository-manager-app"

@@ -16,24 +16,36 @@ use services::recon_task_aggregation::ReconTaskAggregationService;
 mod repositories;
 mod services;
 
-const DAPR_CONNECTION_URL: &'static str = "http://127.0.0.1:5005";
-const DAPR_STORE_NAME: &'static str = "statestore";
-const APP_LISTEN_IP: &'static str = "127.0.0.1";
-const APP_LISTEN_PORT: u16 = 8080;
+const DEFAULT_DAPR_CONNECTION_URL: &'static str = "http://localhost:5005";
+const DEFAULT_DAPR_STORE_NAME: &'static str = "statestore";
+const DEFAULT_APP_LISTEN_IP: &'static str = "0.0.0.0";
+const DEFAULT_APP_LISTEN_PORT: u16 = 8080;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    //retrieve app settings from the env variables
+    let app_port = std::env::var("PORT").unwrap_or(DEFAULT_APP_LISTEN_PORT.to_string());
+    let app_ip = std::env::var("IP").unwrap_or(DEFAULT_APP_LISTEN_IP.to_string());
+    let app_listen_url = format!("{app_ip}:{app_port}");
+
+    println!("App is listening on: {:?}", app_listen_url);
+
     HttpServer::new(move || {
-        // Create some global state prior to running the handler thread
+        //retrieve data store settings from the env variables
+        let dapr_store_name = std::env::var("IP").unwrap_or(DEFAULT_DAPR_STORE_NAME.to_string());
+        let dapr_connection_url =
+            std::env::var("IP").unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string());
+
+        // Create some global state prior to running the handler threadsss
         let service: Box<dyn ReconTaskAggregationServiceInterface> =
             Box::new(ReconTaskAggregationService {
                 recon_task_details_repo: Box::new(ReconTaskDetailsRepositoryManager {
-                    connection_url: String::from(DAPR_CONNECTION_URL),
-                    store_name: String::from(DAPR_STORE_NAME),
+                    connection_url: String::from(dapr_connection_url.clone()),
+                    store_name: String::from(dapr_store_name.clone()),
                 }),
                 recon_file_details_repo: Box::new(ReconFileDetailsRepositoryManager {
-                    connection_url: String::from(DAPR_CONNECTION_URL),
-                    store_name: String::from(DAPR_STORE_NAME),
+                    connection_url: String::from(dapr_connection_url.clone()),
+                    store_name: String::from(dapr_store_name.clone()),
                 }),
             });
 
@@ -42,7 +54,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_task_details)
             .service(create_task_details)
     })
-    .bind((APP_LISTEN_IP, APP_LISTEN_PORT))?
+    .bind(app_listen_url)?
     .run()
     .await
 }
