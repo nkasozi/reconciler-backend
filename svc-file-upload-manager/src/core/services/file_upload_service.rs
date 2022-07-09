@@ -1,12 +1,16 @@
 use async_trait::async_trait;
 use uuid::Uuid;
+use validator::Validate;
 
 use crate::core::{
     interfaces::{
         file_upload_repo::FileUploadRepositoryInterface,
         file_upload_service::FileUploadServiceInterface,
     },
-    models::{app_error::AppError, file_upload_chunk::FileUploadChunk},
+    models::{
+        app_error::{AppError, AppErrorKind},
+        file_upload_chunk::FileUploadChunk,
+    },
     view_models::upload_file_chunk_request::UploadFileChunkRequest,
 };
 
@@ -18,12 +22,32 @@ pub struct FileUploadService {
 
 #[async_trait]
 impl FileUploadServiceInterface for FileUploadService {
+    /**
+    uploads a file chunk to the repository
+
+    # Errors
+
+    This function will return an error if the request fails validation or fails to be uploaded.
+    */
     async fn upload_file_chunk(
         &self,
         upload_file_chunk_request: &UploadFileChunkRequest,
     ) -> Result<String, AppError> {
-        let file_upload_chunk = self.get_file_upload_chunk(upload_file_chunk_request);
+        //validate request
+        match upload_file_chunk_request.validate() {
+            Ok(_) => (),
+            Err(e) => {
+                return Err(AppError::new(
+                    AppErrorKind::BadClientRequest,
+                    e.to_string().replace("\n", " , "),
+                ));
+            }
+        }
 
+        //transform into the repo model
+        let file_upload_chunk = self.transform_into_file_upload_chunk(upload_file_chunk_request);
+
+        //save it to the repository
         return self
             .file_upload_repo
             .save_file_upload_chunk(&file_upload_chunk)
@@ -32,7 +56,7 @@ impl FileUploadServiceInterface for FileUploadService {
 }
 
 impl FileUploadService {
-    fn get_file_upload_chunk(
+    fn transform_into_file_upload_chunk(
         &self,
         upload_file_chunk_request: &UploadFileChunkRequest,
     ) -> FileUploadChunk {
@@ -40,9 +64,9 @@ impl FileUploadService {
             id: self.generate_uuid(FILE_CHUNK_PREFIX),
             upload_request_id: upload_file_chunk_request.upload_request_id.clone(),
             chunk_sequence_number: upload_file_chunk_request.chunk_sequence_number.clone(),
-            chunk_type: upload_file_chunk_request.chunk_type.clone(),
-            date_created: String::from(""),
-            date_modified: String::from(""),
+            chunk_source: upload_file_chunk_request.chunk_source.clone(),
+            date_created: chrono::Utc::now().timestamp(),
+            date_modified: chrono::Utc::now().timestamp(),
         }
     }
 
@@ -50,5 +74,101 @@ impl FileUploadService {
         let id = Uuid::new_v4().to_string();
         let full_id = String::from(format!("{}-{}", prefix, id));
         return full_id;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::{
+        interfaces::{
+            file_upload_repo::MockFileUploadRepositoryInterface,
+            file_upload_service::FileUploadServiceInterface,
+        },
+        models::app_error::{AppError, AppErrorKind},
+        view_models::upload_file_chunk_request::UploadFileChunkRequest,
+    };
+
+    use crate::core::models::file_upload_chunk::FileUploadChunkSource;
+
+    use super::FileUploadService;
+
+    #[actix_rt::test]
+    async fn given_valid_request_calls_correct_dependencie_and_returns_success() {
+        let mut mock_file_upload_repo = Box::new(MockFileUploadRepositoryInterface::new());
+
+        mock_file_upload_repo
+            .expect_save_file_upload_chunk()
+            .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
+
+        let sut = FileUploadService {
+            file_upload_repo: mock_file_upload_repo,
+        };
+
+        let test_request = UploadFileChunkRequest {
+            upload_request_id: String::from("1234"),
+            chunk_sequence_number: 2,
+            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
+            chunk_raw_data: String::from("testing, 1234"),
+        };
+
+        let actual = sut.upload_file_chunk(&test_request).await;
+
+        let expected = String::from("FILE_CHUNK_1234");
+
+        assert!(actual.is_ok());
+        assert_eq!(actual.ok(), Some(expected));
+    }
+
+    #[actix_rt::test]
+    async fn given_invalid_request_returns_error() {
+        let mut mock_file_upload_repo = Box::new(MockFileUploadRepositoryInterface::new());
+
+        mock_file_upload_repo
+            .expect_save_file_upload_chunk()
+            .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
+
+        let sut = FileUploadService {
+            file_upload_repo: mock_file_upload_repo,
+        };
+
+        let test_request = UploadFileChunkRequest {
+            upload_request_id: String::from("1234"),
+            chunk_sequence_number: 0,
+            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
+            chunk_raw_data: String::from("testing, 1234"),
+        };
+
+        let actual = sut.upload_file_chunk(&test_request).await;
+
+        assert!(actual.is_err());
+    }
+
+    #[actix_rt::test]
+    async fn given_valid_request_but_repo_returns_error_returns_error() {
+        let mut mock_file_upload_repo = Box::new(MockFileUploadRepositoryInterface::new());
+
+        mock_file_upload_repo
+            .expect_save_file_upload_chunk()
+            .returning(|_y| {
+                Err(AppError::new(
+                    AppErrorKind::ConnectionError,
+                    "unable to connect".to_string(),
+                ))
+            });
+
+        let sut = FileUploadService {
+            file_upload_repo: mock_file_upload_repo,
+        };
+
+        let test_request = UploadFileChunkRequest {
+            upload_request_id: String::from("1234"),
+            chunk_sequence_number: 2,
+            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
+            chunk_raw_data: String::from("testing, 1234"),
+        };
+
+        let actual = sut.upload_file_chunk(&test_request).await;
+
+        assert!(actual.is_err());
     }
 }

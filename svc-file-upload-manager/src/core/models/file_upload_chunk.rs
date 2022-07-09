@@ -5,13 +5,13 @@ pub struct FileUploadChunk {
     pub id: String,
     pub upload_request_id: String,
     pub chunk_sequence_number: i64,
-    pub chunk_type: FileUploadChunkType,
-    pub date_created: String,
-    pub date_modified: String,
+    pub chunk_source: FileUploadChunkSource,
+    pub date_created: i64,
+    pub date_modified: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum FileUploadChunkType {
-    SrcFileChunk,
+pub enum FileUploadChunkSource {
+    ComparisonFileChunk,
     PrimaryFileChunk,
 }
