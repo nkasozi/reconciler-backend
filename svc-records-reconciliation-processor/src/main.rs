@@ -21,8 +21,7 @@ use actix_web::{
 // constants
 const DEFAULT_DAPR_CONNECTION_URL: &'static str = "http://localhost:5005";
 const DEFAULT_DAPR_PUBSUB_NAME: &'static str = "FileChunksQueue";
-const DEFAULT_DAPR_PRIMARY_FILE_PUBSUB_TOPIC: &'static str = "PrimaryFileQueue";
-const DEFAULT_DAPR_COMPARISON_FILE_PUBSUB_TOPIC: &'static str = "ComparisonFileQueue";
+const DEFAULT_DAPR_PUBSUB_TOPIC: &'static str = "FileChunks";
 const DEFAULT_APP_LISTEN_IP: &'static str = "0.0.0.0";
 const DEFAULT_APP_LISTEN_PORT: u16 = 8080;
 
@@ -33,9 +32,7 @@ struct AppSettings {
 
     pub dapr_pubsub_name: String,
 
-    pub dapr_pubsub_comparison_file_topic: String,
-
-    pub dapr_pubsub_primary_file_topic: String,
+    pub dapr_pubsub_topic: String,
 
     pub dapr_grpc_server_address: String,
 }
@@ -56,10 +53,7 @@ async fn main() -> std::io::Result<()> {
             file_upload_repo: Box::new(DaprFileUploadRepositoryManager {
                 dapr_grpc_server_address: app_settings.dapr_grpc_server_address.clone(),
                 dapr_pubsub_name: app_settings.dapr_pubsub_name.clone(),
-                dapr_pubsub_comparison_file_topic: app_settings
-                    .dapr_pubsub_comparison_file_topic
-                    .clone(),
-                dapr_pubsub_primary_file_topic: app_settings.dapr_pubsub_primary_file_topic.clone(),
+                dapr_pubsub_topic: app_settings.dapr_pubsub_topic.clone(),
             }),
         });
 
@@ -79,14 +73,11 @@ fn read_app_settings() -> AppSettings {
 
         app_ip: std::env::var("APP_IP").unwrap_or(DEFAULT_APP_LISTEN_IP.to_string()),
 
-        dapr_pubsub_name: std::env::var("DAPR_PUBSUB_NAME")
+        dapr_pubsub_name: std::env::var("PUBSUB_NAME")
             .unwrap_or(DEFAULT_DAPR_PUBSUB_NAME.to_string()),
 
-        dapr_pubsub_primary_file_topic: std::env::var("DAPR_PUBSUB_PRIMRY_FILE_TOPIC")
-            .unwrap_or(DEFAULT_DAPR_PRIMARY_FILE_PUBSUB_TOPIC.to_string()),
-
-        dapr_pubsub_comparison_file_topic: std::env::var("DAPR_PUBSUB_COMPARISION_FILE_TOPIC")
-            .unwrap_or(DEFAULT_DAPR_COMPARISON_FILE_PUBSUB_TOPIC.to_string()),
+        dapr_pubsub_topic: std::env::var("PUBSUB_TOPIC")
+            .unwrap_or(DEFAULT_DAPR_PUBSUB_TOPIC.to_string()),
 
         dapr_grpc_server_address: std::env::var("DAPR_IP")
             .unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string()),

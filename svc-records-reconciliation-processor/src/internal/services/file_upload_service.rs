@@ -1,7 +1,7 @@
 use crate::internal::{
     entities::{
         app_error::{AppError, AppErrorKind},
-        file_upload_chunk::{FileUploadChunk, FileUploadChunkSource},
+        file_upload_chunk::FileUploadChunk,
     },
     interfaces::{
         file_upload_repo::FileUploadRepositoryInterface,
@@ -49,25 +49,14 @@ impl FileUploadServiceInterface for FileUploadService {
         //transform into the repo model
         let file_upload_chunk = self.transform_into_file_upload_chunk(upload_file_chunk_request);
 
-        let file_save_result;
-
         //save it to the repository
-        if file_upload_chunk.chunk_source == FileUploadChunkSource::PrimaryFileChunk {
-            file_save_result = self
-                .file_upload_repo
-                .save_file_upload_chunk_to_primary_file_queue(&file_upload_chunk)
-                .await;
-        } else {
-            file_save_result = self
-                .file_upload_repo
-                .save_file_upload_chunk_to_comparison_file_queue(&file_upload_chunk)
-                .await;
-        }
+        let file_save_result = self
+            .file_upload_repo
+            .save_file_upload_chunk(&file_upload_chunk)
+            .await;
 
         match file_save_result {
-            Ok(_) => Ok(UploadFileChunkResponse {
-                file_chunk_id: file_upload_chunk.id,
-            }),
+            Ok(file_chunk_id) => Ok(UploadFileChunkResponse { file_chunk_id }),
             Err(e) => Err(e),
         }
     }
@@ -116,7 +105,7 @@ mod tests {
         let mut mock_file_upload_repo = Box::new(MockFileUploadRepositoryInterface::new());
 
         mock_file_upload_repo
-            .expect_save_file_upload_chunk_to_comparison_file_queue()
+            .expect_save_file_upload_chunk()
             .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
 
         let sut = FileUploadService {
@@ -140,7 +129,7 @@ mod tests {
         let mut mock_file_upload_repo = Box::new(MockFileUploadRepositoryInterface::new());
 
         mock_file_upload_repo
-            .expect_save_file_upload_chunk_to_comparison_file_queue()
+            .expect_save_file_upload_chunk()
             .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
 
         let sut = FileUploadService {
@@ -164,7 +153,7 @@ mod tests {
         let mut mock_file_upload_repo = Box::new(MockFileUploadRepositoryInterface::new());
 
         mock_file_upload_repo
-            .expect_save_file_upload_chunk_to_comparison_file_queue()
+            .expect_save_file_upload_chunk()
             .returning(|_y| {
                 Err(AppError::new(
                     AppErrorKind::ConnectionError,

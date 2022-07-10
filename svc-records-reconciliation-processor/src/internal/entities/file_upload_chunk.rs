@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, PartialEq, Eq, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct FileUploadChunk {
     pub id: String,
 
@@ -17,7 +17,7 @@ pub struct FileUploadChunk {
     pub date_modified: i64,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum FileUploadChunkSource {
     ComparisonFileChunk,
     PrimaryFileChunk,
