@@ -1,7 +1,7 @@
-mod core;
-mod repositories;
+mod external;
+mod internal;
 
-use crate::core::{
+use crate::internal::{
     models::app_error::AppErrorKind, view_models::upload_file_chunk_request::UploadFileChunkRequest,
 };
 
@@ -12,11 +12,11 @@ use actix_web::{
 };
 
 use crate::{
-    core::{
+    external::repositories::file_upload_repo::FileUploadRepositoryManager,
+    internal::{
         interfaces::file_upload_service::FileUploadServiceInterface,
         services::file_upload_service::FileUploadService,
     },
-    repositories::file_upload_repo::FileUploadRepositoryManager,
 };
 
 // constants

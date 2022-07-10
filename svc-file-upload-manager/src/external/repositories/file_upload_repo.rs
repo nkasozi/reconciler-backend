@@ -5,8 +5,8 @@ use tonic::transport::Channel as TonicChannel;
 use async_trait::async_trait;
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
 
-use crate::core::interfaces::file_upload_repo::FileUploadRepositoryInterface;
-use crate::core::models::{
+use crate::internal::interfaces::file_upload_repo::FileUploadRepositoryInterface;
+use crate::internal::models::{
     app_error::AppError, app_error::AppErrorKind, file_upload_chunk::FileUploadChunk,
 };
 

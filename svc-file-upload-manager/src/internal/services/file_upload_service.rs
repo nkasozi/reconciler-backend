@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::core::{
+use crate::internal::{
     interfaces::{
         file_upload_repo::FileUploadRepositoryInterface,
         file_upload_service::FileUploadServiceInterface,
@@ -79,7 +79,7 @@ impl FileUploadService {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::{
+    use crate::internal::{
         interfaces::{
             file_upload_repo::MockFileUploadRepositoryInterface,
             file_upload_service::FileUploadServiceInterface,
@@ -88,7 +88,7 @@ mod tests {
         view_models::upload_file_chunk_request::UploadFileChunkRequest,
     };
 
-    use crate::core::models::file_upload_chunk::FileUploadChunkSource;
+    use crate::internal::models::file_upload_chunk::FileUploadChunkSource;
 
     use super::FileUploadService;
 
