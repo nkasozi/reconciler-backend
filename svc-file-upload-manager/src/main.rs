@@ -6,7 +6,7 @@ use crate::internal::{
     view_models::upload_file_chunk_request::UploadFileChunkRequest,
 };
 use crate::{
-    external::repositories::file_upload_repo::DaprFileUploadRepositoryManager,
+    external::repositories::dapr_file_upload_repo::DaprFileUploadRepositoryManager,
     internal::{
         interfaces::file_upload_service::FileUploadServiceInterface,
         services::file_upload_service::FileUploadService,

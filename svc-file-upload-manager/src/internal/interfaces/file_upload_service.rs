@@ -1,5 +1,9 @@
 use crate::internal::{
-    entities::app_error::AppError, view_models::upload_file_chunk_request::UploadFileChunkRequest,
+    entities::app_error::AppError,
+    view_models::{
+        upload_file_chunk_request::UploadFileChunkRequest,
+        upload_file_chunk_response::UploadFileChunkResponse,
+    },
 };
 use async_trait::async_trait;
 use mockall::automock;
@@ -10,5 +14,5 @@ pub trait FileUploadServiceInterface: Send + Sync {
     async fn upload_file_chunk(
         &self,
         file_upload_chunk: &UploadFileChunkRequest,
-    ) -> Result<String, AppError>;
+    ) -> Result<UploadFileChunkResponse, AppError>;
 }

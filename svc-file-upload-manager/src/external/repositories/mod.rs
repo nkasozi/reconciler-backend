@@ -1,1 +1,1 @@
-pub mod file_upload_repo;
+pub mod dapr_file_upload_repo;

@@ -7,7 +7,10 @@ use crate::internal::{
         file_upload_repo::FileUploadRepositoryInterface,
         file_upload_service::FileUploadServiceInterface,
     },
-    view_models::upload_file_chunk_request::UploadFileChunkRequest,
+    view_models::{
+        upload_file_chunk_request::UploadFileChunkRequest,
+        upload_file_chunk_response::UploadFileChunkResponse,
+    },
 };
 use async_trait::async_trait;
 use uuid::Uuid;
@@ -31,7 +34,7 @@ impl FileUploadServiceInterface for FileUploadService {
     async fn upload_file_chunk(
         &self,
         upload_file_chunk_request: &UploadFileChunkRequest,
-    ) -> Result<String, AppError> {
+    ) -> Result<UploadFileChunkResponse, AppError> {
         //validate request
         match upload_file_chunk_request.validate() {
             Ok(_) => (),
@@ -47,10 +50,15 @@ impl FileUploadServiceInterface for FileUploadService {
         let file_upload_chunk = self.transform_into_file_upload_chunk(upload_file_chunk_request);
 
         //save it to the repository
-        return self
+        let file_save_result = self
             .file_upload_repo
             .save_file_upload_chunk(&file_upload_chunk)
             .await;
+
+        match file_save_result {
+            Ok(file_chunk_id) => Ok(UploadFileChunkResponse { file_chunk_id }),
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -113,10 +121,7 @@ mod tests {
 
         let actual = sut.upload_file_chunk(&test_request).await;
 
-        let expected = String::from("FILE_CHUNK_1234");
-
         assert!(actual.is_ok());
-        assert_eq!(actual.ok(), Some(expected));
     }
 
     #[actix_rt::test]
