@@ -41,6 +41,7 @@ struct AppSettings {
 async fn main() -> std::io::Result<()> {
     //retrieve app settings from the env variables
     let app_settings = read_app_settings();
+
     let app_listen_url = format!("{}:{}", app_settings.app_ip, app_settings.app_port);
 
     //just for logging purposes
@@ -69,11 +70,15 @@ async fn main() -> std::io::Result<()> {
 fn read_app_settings() -> AppSettings {
     AppSettings {
         app_port: std::env::var("APP_PORT").unwrap_or(DEFAULT_APP_LISTEN_PORT.to_string()),
+
         app_ip: std::env::var("APP_IP").unwrap_or(DEFAULT_APP_LISTEN_IP.to_string()),
+
         dapr_pubsub_name: std::env::var("PUBSUB_NAME")
             .unwrap_or(DEFAULT_DAPR_PUBSUB_NAME.to_string()),
+
         dapr_pubsub_topic: std::env::var("PUBSUB_TOPIC")
             .unwrap_or(DEFAULT_DAPR_PUBSUB_TOPIC.to_string()),
+
         dapr_grpc_server_address: std::env::var("DAPR_IP")
             .unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string()),
     }
@@ -88,6 +93,7 @@ async fn upload_file_chunk(
 
     return match recon_task_details {
         Ok(details) => HttpResponse::Ok().json(details),
+
         Err(err) => match err.kind {
             AppErrorKind::BadClientRequest => HttpResponse::BadRequest().json(format!("{}", err)),
             _ => HttpResponse::InternalServerError().json(format!("{}", err)),
