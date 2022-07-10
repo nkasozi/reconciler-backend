@@ -1,14 +1,15 @@
 mod external;
 mod internal;
 
-use crate::internal::{
-    models::app_error::AppErrorKind, view_models::upload_file_chunk_request::UploadFileChunkRequest,
-};
-
 use actix_web::{
     post,
     web::{self, Data},
     App, HttpResponse, HttpServer,
+};
+
+use crate::internal::{
+    entities::app_error::AppErrorKind,
+    view_models::upload_file_chunk_request::UploadFileChunkRequest,
 };
 
 use crate::{

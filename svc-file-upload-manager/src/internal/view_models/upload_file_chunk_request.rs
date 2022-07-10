@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-use crate::internal::models::file_upload_chunk::FileUploadChunkSource;
+use crate::internal::entities::file_upload_chunk::FileUploadChunkSource;
 
 #[derive(Serialize, Deserialize, Validate, Debug)]
 pub struct UploadFileChunkRequest {
@@ -13,6 +13,6 @@ pub struct UploadFileChunkRequest {
 
     pub chunk_source: FileUploadChunkSource,
 
-    #[validate(length(min = 1, message = "please supply the chunk raw data"))]
-    pub chunk_raw_data: String,
+    #[validate(length(min = 1, message = "please supply the chunk rows"))]
+    pub chunk_rows: Vec<String>,
 }

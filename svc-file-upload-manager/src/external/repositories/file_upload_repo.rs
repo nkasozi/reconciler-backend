@@ -5,10 +5,10 @@ use tonic::transport::Channel as TonicChannel;
 use async_trait::async_trait;
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
 
-use crate::internal::interfaces::file_upload_repo::FileUploadRepositoryInterface;
-use crate::internal::models::{
+use crate::internal::entities::{
     app_error::AppError, app_error::AppErrorKind, file_upload_chunk::FileUploadChunk,
 };
+use crate::internal::interfaces::file_upload_repo::FileUploadRepositoryInterface;
 
 pub struct FileUploadRepositoryManager {
     pub connection_url: String,
@@ -28,7 +28,7 @@ impl FileUploadRepositoryInterface for FileUploadRepositoryManager {
         //call the binding
         let pubsub_name = self.pubsub_name.clone();
         let pubsub_topic = self.pubsub_topic.clone();
-        let data_content_type = "".to_string();
+        let data_content_type = "json".to_string();
         let data = serde_json::to_vec(&file_upload_chunk).unwrap();
         let metadata = None::<HashMap<String, String>>;
         let binding_response = client

@@ -3,13 +3,13 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::internal::{
+    entities::{
+        app_error::{AppError, AppErrorKind},
+        file_upload_chunk::FileUploadChunk,
+    },
     interfaces::{
         file_upload_repo::FileUploadRepositoryInterface,
         file_upload_service::FileUploadServiceInterface,
-    },
-    models::{
-        app_error::{AppError, AppErrorKind},
-        file_upload_chunk::FileUploadChunk,
     },
     view_models::upload_file_chunk_request::UploadFileChunkRequest,
 };
@@ -65,6 +65,7 @@ impl FileUploadService {
             upload_request_id: upload_file_chunk_request.upload_request_id.clone(),
             chunk_sequence_number: upload_file_chunk_request.chunk_sequence_number.clone(),
             chunk_source: upload_file_chunk_request.chunk_source.clone(),
+            chunk_rows: upload_file_chunk_request.chunk_rows.clone(),
             date_created: chrono::Utc::now().timestamp(),
             date_modified: chrono::Utc::now().timestamp(),
         }
@@ -80,15 +81,15 @@ impl FileUploadService {
 #[cfg(test)]
 mod tests {
     use crate::internal::{
+        entities::app_error::{AppError, AppErrorKind},
         interfaces::{
             file_upload_repo::MockFileUploadRepositoryInterface,
             file_upload_service::FileUploadServiceInterface,
         },
-        models::app_error::{AppError, AppErrorKind},
         view_models::upload_file_chunk_request::UploadFileChunkRequest,
     };
 
-    use crate::internal::models::file_upload_chunk::FileUploadChunkSource;
+    use crate::internal::entities::file_upload_chunk::FileUploadChunkSource;
 
     use super::FileUploadService;
 
@@ -108,7 +109,7 @@ mod tests {
             upload_request_id: String::from("1234"),
             chunk_sequence_number: 2,
             chunk_source: FileUploadChunkSource::ComparisonFileChunk,
-            chunk_raw_data: String::from("testing, 1234"),
+            chunk_rows: vec![String::from("testing, 1234")],
         };
 
         let actual = sut.upload_file_chunk(&test_request).await;
@@ -135,7 +136,7 @@ mod tests {
             upload_request_id: String::from("1234"),
             chunk_sequence_number: 0,
             chunk_source: FileUploadChunkSource::ComparisonFileChunk,
-            chunk_raw_data: String::from("testing, 1234"),
+            chunk_rows: vec![String::from("testing, 1234")],
         };
 
         let actual = sut.upload_file_chunk(&test_request).await;
@@ -164,7 +165,7 @@ mod tests {
             upload_request_id: String::from("1234"),
             chunk_sequence_number: 2,
             chunk_source: FileUploadChunkSource::ComparisonFileChunk,
-            chunk_raw_data: String::from("testing, 1234"),
+            chunk_rows: vec![String::from("testing, 1234")],
         };
 
         let actual = sut.upload_file_chunk(&test_request).await;

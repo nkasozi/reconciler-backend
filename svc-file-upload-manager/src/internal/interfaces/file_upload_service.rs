@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use mockall::automock;
 
 use crate::internal::{
-    models::app_error::AppError, view_models::upload_file_chunk_request::UploadFileChunkRequest,
+    entities::app_error::AppError, view_models::upload_file_chunk_request::UploadFileChunkRequest,
 };
 
 #[automock]
