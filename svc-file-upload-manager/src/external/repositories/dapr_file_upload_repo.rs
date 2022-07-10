@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use tonic::transport::Channel as TonicChannel;
 
 pub struct DaprFileUploadRepositoryManager {
-    //the dapr connection_url
+    //the dapr server ip
     pub dapr_grpc_server_address: String,
 
     //the dapr pub sub component name
