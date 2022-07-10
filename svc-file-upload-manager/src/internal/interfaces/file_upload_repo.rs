@@ -1,7 +1,6 @@
+use crate::internal::entities::{app_error::AppError, file_upload_chunk::FileUploadChunk};
 use async_trait::async_trait;
 use mockall::automock;
-
-use crate::internal::entities::{app_error::AppError, file_upload_chunk::FileUploadChunk};
 
 #[automock]
 #[async_trait]

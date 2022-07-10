@@ -1,7 +1,3 @@
-use async_trait::async_trait;
-use uuid::Uuid;
-use validator::Validate;
-
 use crate::internal::{
     entities::{
         app_error::{AppError, AppErrorKind},
@@ -13,6 +9,9 @@ use crate::internal::{
     },
     view_models::upload_file_chunk_request::UploadFileChunkRequest,
 };
+use async_trait::async_trait;
+use uuid::Uuid;
+use validator::Validate;
 
 const FILE_CHUNK_PREFIX: &'static str = "FILE-CHUNK";
 

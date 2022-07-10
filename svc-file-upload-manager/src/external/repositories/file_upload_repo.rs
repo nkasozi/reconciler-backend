@@ -1,23 +1,25 @@
-use std::collections::HashMap;
-
-use tonic::transport::Channel as TonicChannel;
-
+use crate::internal::{
+    entities::{app_error::AppError, app_error::AppErrorKind, file_upload_chunk::FileUploadChunk},
+    interfaces::file_upload_repo::FileUploadRepositoryInterface,
+};
 use async_trait::async_trait;
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
+use std::collections::HashMap;
+use tonic::transport::Channel as TonicChannel;
 
-use crate::internal::entities::{
-    app_error::AppError, app_error::AppErrorKind, file_upload_chunk::FileUploadChunk,
-};
-use crate::internal::interfaces::file_upload_repo::FileUploadRepositoryInterface;
+pub struct DaprFileUploadRepositoryManager {
+    //the dapr connection_url
+    pub dapr_grpc_server_address: String,
 
-pub struct FileUploadRepositoryManager {
-    pub connection_url: String,
-    pub pubsub_name: String,
-    pub pubsub_topic: String,
+    //the dapr pub sub component name
+    pub dapr_pubsub_name: String,
+
+    //the dapr pub sub topic
+    pub dapr_pubsub_topic: String,
 }
 
 #[async_trait]
-impl FileUploadRepositoryInterface for FileUploadRepositoryManager {
+impl FileUploadRepositoryInterface for DaprFileUploadRepositoryManager {
     async fn save_file_upload_chunk(
         &self,
         file_upload_chunk: &FileUploadChunk,
@@ -26,8 +28,8 @@ impl FileUploadRepositoryInterface for FileUploadRepositoryManager {
         let mut client = self.get_dapr_connection().await?;
 
         //call the binding
-        let pubsub_name = self.pubsub_name.clone();
-        let pubsub_topic = self.pubsub_topic.clone();
+        let pubsub_name = self.dapr_pubsub_name.clone();
+        let pubsub_topic = self.dapr_pubsub_topic.clone();
         let data_content_type = "json".to_string();
         let data = serde_json::to_vec(&file_upload_chunk).unwrap();
         let metadata = None::<HashMap<String, String>>;
@@ -45,14 +47,14 @@ impl FileUploadRepositoryInterface for FileUploadRepositoryManager {
     }
 }
 
-impl FileUploadRepositoryManager {
+impl DaprFileUploadRepositoryManager {
     async fn get_dapr_connection(&self) -> Result<Client<DaprClient<TonicChannel>>, AppError> {
         // Create the client
-        let connection_url = self.connection_url.clone();
+        let dapr_grpc_server_address = self.dapr_grpc_server_address.clone();
 
         //connect to dapr
         let client_connect_result =
-            dapr::Client::<dapr::client::TonicClient>::connect(connection_url).await;
+            dapr::Client::<dapr::client::TonicClient>::connect(dapr_grpc_server_address).await;
 
         //handle the connection result
         match client_connect_result {

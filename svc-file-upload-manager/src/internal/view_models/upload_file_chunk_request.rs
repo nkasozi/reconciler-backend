@@ -1,7 +1,6 @@
+use crate::internal::entities::file_upload_chunk::FileUploadChunkSource;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
-
-use crate::internal::entities::file_upload_chunk::FileUploadChunkSource;
 
 #[derive(Serialize, Deserialize, Validate, Debug)]
 pub struct UploadFileChunkRequest {
