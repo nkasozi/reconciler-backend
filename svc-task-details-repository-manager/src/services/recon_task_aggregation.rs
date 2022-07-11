@@ -94,7 +94,6 @@ impl ReconTaskAggregationService {
             file_size: request.source_file_column_count * request.source_file_row_count,
             row_count: request.source_file_row_count,
             column_count: request.source_file_column_count,
-            file_contents: String::from(""),
             recon_file_type: ReconFileType::SourceReconFile,
             file_hash: request.source_file_hash.clone(),
         };
@@ -107,7 +106,6 @@ impl ReconTaskAggregationService {
             file_size: request.comparison_file_column_count * request.comparison_file_row_count,
             row_count: request.comparison_file_row_count,
             column_count: request.comparison_file_column_count,
-            file_contents: String::from(""),
             recon_file_type: ReconFileType::ComparisonReconFile,
             file_hash: request.comparison_file_hash.clone(),
         };

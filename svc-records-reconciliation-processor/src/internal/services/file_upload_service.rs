@@ -4,12 +4,12 @@ use crate::internal::{
         file_upload_chunk::FileUploadChunk,
     },
     interfaces::{
-        file_upload_repo::FileUploadRepositoryInterface,
-        file_upload_service::FileUploadServiceInterface,
+        file_chunk_reconciliation_service::FileChunkReconciliationServiceInterface,
+        pubsub_repo::PubSubRepositoryInterface, recon_tasks_repo::ReconTasksRepositoryInterface,
     },
     view_models::{
-        upload_file_chunk_request::UploadFileChunkRequest,
-        upload_file_chunk_response::UploadFileChunkResponse,
+        reconcile_file_chunk_request::ReconcileFileChunkRequest,
+        reconcile_file_chunk_response::ReconcileFileChunkResponse,
     },
 };
 use async_trait::async_trait;
@@ -18,12 +18,13 @@ use validator::Validate;
 
 const FILE_CHUNK_PREFIX: &'static str = "FILE-CHUNK";
 
-pub struct FileUploadService {
-    pub file_upload_repo: Box<dyn FileUploadRepositoryInterface>,
+pub struct FileChunkReconciliationService {
+    pub pubsub_repo: Box<dyn PubSubRepositoryInterface>,
+    pub recon_tasks_repo: Box<dyn ReconTasksRepositoryInterface>,
 }
 
 #[async_trait]
-impl FileUploadServiceInterface for FileUploadService {
+impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService {
     /**
     uploads a file chunk to the repository
 
@@ -31,12 +32,12 @@ impl FileUploadServiceInterface for FileUploadService {
 
     This function will return an error if the request fails validation or fails to be uploaded.
     */
-    async fn upload_file_chunk(
+    async fn reconcile_file_chunk(
         &self,
-        upload_file_chunk_request: &UploadFileChunkRequest,
-    ) -> Result<UploadFileChunkResponse, AppError> {
+        primary_file_chunk: &ReconcileFileChunkRequest,
+    ) -> Result<ReconcileFileChunkResponse, AppError> {
         //validate request
-        match upload_file_chunk_request.validate() {
+        match primary_file_chunk.validate() {
             Ok(_) => (),
             Err(e) => {
                 return Err(AppError::new(
@@ -46,26 +47,42 @@ impl FileUploadServiceInterface for FileUploadService {
             }
         }
 
-        //transform into the repo model
-        let file_upload_chunk = self.transform_into_file_upload_chunk(upload_file_chunk_request);
+        //save it to the repository
+        let primary_file_recon_task_details = self
+            .recon_tasks_repo
+            .get_primary_recon_task_details(primary_file_chunk.upload_request_id)
+            .await?;
 
         //save it to the repository
-        let file_save_result = self
-            .file_upload_repo
-            .save_file_upload_chunk(&file_upload_chunk)
-            .await;
+        let comparison_file_chunk = self
+            .pubsub_repo
+            .get_next_comparison_file_upload_chunk()
+            .await?;
 
-        match file_save_result {
-            Ok(file_chunk_id) => Ok(UploadFileChunkResponse { file_chunk_id }),
-            Err(e) => Err(e),
+        for primary_chunk_row in primary_file_chunk.chunk_rows.clone() {
+            let primary_file_row_parts: Vec<&str> = primary_chunk_row.split(',').collect();
+            //if primary_file_row_parts.len() != primary_file_recon_task_details.
+            for comparison_chunk_row in comparison_file_chunk.chunk_rows.clone() {
+                let comparison_file_row_parts: Vec<&str> = primary_chunk_row.split(',').collect();
+
+                for primary_file_column_in_row in primary_file_row_parts{
+                    if 
+                }
+            }
         }
+
+        // match file_save_result {
+        //     Ok(file_chunk_id) => Ok(ReconcileFileChunkResponse { file_chunk_id }),
+        //     Err(e) => Err(e),
+        // }
+        todo!()
     }
 }
 
-impl FileUploadService {
+impl FileChunkReconciliationService {
     fn transform_into_file_upload_chunk(
         &self,
-        upload_file_chunk_request: &UploadFileChunkRequest,
+        upload_file_chunk_request: &ReconcileFileChunkRequest,
     ) -> FileUploadChunk {
         FileUploadChunk {
             id: self.generate_uuid(FILE_CHUNK_PREFIX),
@@ -85,95 +102,95 @@ impl FileUploadService {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::internal::{
-        entities::app_error::{AppError, AppErrorKind},
-        interfaces::{
-            file_upload_repo::MockFileUploadRepositoryInterface,
-            file_upload_service::FileUploadServiceInterface,
-        },
-        view_models::upload_file_chunk_request::UploadFileChunkRequest,
-    };
+// #[cfg(test)]
+// mod tests {
+//     use crate::internal::{
+//         entities::app_error::{AppError, AppErrorKind},
+//         interfaces::{
+//             file_chunk_reconciliation_service::FileChunkReconciliationServiceInterface,
+//             pubsub_repo::{MockPubSubRepositoryInterface, PubSubRepositoryInterface},
+//         },
+//         view_models::reconcile_file_chunk_request::ReconcileFileChunkRequest,
+//     };
 
-    use crate::internal::entities::file_upload_chunk::FileUploadChunkSource;
+//     use crate::internal::entities::file_upload_chunk::FileUploadChunkSource;
 
-    use super::FileUploadService;
+//     use super::FileChunkReconciliationService;
 
-    #[actix_rt::test]
-    async fn given_valid_request_calls_correct_dependencie_and_returns_success() {
-        let mut mock_file_upload_repo = Box::new(MockFileUploadRepositoryInterface::new());
+//     #[actix_rt::test]
+//     async fn given_valid_request_calls_correct_dependencie_and_returns_success() {
+//         let mut mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
 
-        mock_file_upload_repo
-            .expect_save_file_upload_chunk()
-            .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
+//         mock_file_upload_repo
+//             .expect_save_file_upload_chunk()
+//             .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
 
-        let sut = FileUploadService {
-            file_upload_repo: mock_file_upload_repo,
-        };
+//         let sut = FileChunkReconciliationService {
+//             pubsub_repo: mock_file_upload_repo,
+//         };
 
-        let test_request = UploadFileChunkRequest {
-            upload_request_id: String::from("1234"),
-            chunk_sequence_number: 2,
-            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
-            chunk_rows: vec![String::from("testing, 1234")],
-        };
+//         let test_request = ReconcileFileChunkRequest {
+//             upload_request_id: String::from("1234"),
+//             chunk_sequence_number: 2,
+//             chunk_source: FileUploadChunkSource::PrimaryFileChunk,
+//             chunk_rows: vec![String::from("testing, 1234")],
+//         };
 
-        let actual = sut.upload_file_chunk(&test_request).await;
+//         let actual = sut.reconcile_file_chunk(&test_request).await;
 
-        assert!(actual.is_ok());
-    }
+//         assert!(actual.is_ok());
+//     }
 
-    #[actix_rt::test]
-    async fn given_invalid_request_returns_error() {
-        let mut mock_file_upload_repo = Box::new(MockFileUploadRepositoryInterface::new());
+//     #[actix_rt::test]
+//     async fn given_invalid_request_returns_error() {
+//         let mut mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
 
-        mock_file_upload_repo
-            .expect_save_file_upload_chunk()
-            .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
+//         mock_file_upload_repo
+//             .expect_save_file_upload_chunk()
+//             .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
 
-        let sut = FileUploadService {
-            file_upload_repo: mock_file_upload_repo,
-        };
+//         let sut = FileChunkReconciliationService {
+//             pubsub_repo: mock_file_upload_repo,
+//         };
 
-        let test_request = UploadFileChunkRequest {
-            upload_request_id: String::from("1234"),
-            chunk_sequence_number: 0,
-            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
-            chunk_rows: vec![String::from("testing, 1234")],
-        };
+//         let test_request = ReconcileFileChunkRequest {
+//             upload_request_id: String::from("1234"),
+//             chunk_sequence_number: 0,
+//             chunk_source: FileUploadChunkSource::ComparisonFileChunk,
+//             chunk_rows: vec![String::from("testing, 1234")],
+//         };
 
-        let actual = sut.upload_file_chunk(&test_request).await;
+//         let actual = sut.reconcile_file_chunk(&test_request).await;
 
-        assert!(actual.is_err());
-    }
+//         assert!(actual.is_err());
+//     }
 
-    #[actix_rt::test]
-    async fn given_valid_request_but_repo_returns_error_returns_error() {
-        let mut mock_file_upload_repo = Box::new(MockFileUploadRepositoryInterface::new());
+//     #[actix_rt::test]
+//     async fn given_valid_request_but_repo_returns_error_returns_error() {
+//         let mut mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
 
-        mock_file_upload_repo
-            .expect_save_file_upload_chunk()
-            .returning(|_y| {
-                Err(AppError::new(
-                    AppErrorKind::ConnectionError,
-                    "unable to connect".to_string(),
-                ))
-            });
+//         mock_file_upload_repo
+//             .expect_save_file_upload_chunk()
+//             .returning(|_y| {
+//                 Err(AppError::new(
+//                     AppErrorKind::ConnectionError,
+//                     "unable to connect".to_string(),
+//                 ))
+//             });
 
-        let sut = FileUploadService {
-            file_upload_repo: mock_file_upload_repo,
-        };
+//         let sut = FileChunkReconciliationService {
+//             pubsub_repo: mock_file_upload_repo,
+//         };
 
-        let test_request = UploadFileChunkRequest {
-            upload_request_id: String::from("1234"),
-            chunk_sequence_number: 2,
-            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
-            chunk_rows: vec![String::from("testing, 1234")],
-        };
+//         let test_request = ReconcileFileChunkRequest {
+//             upload_request_id: String::from("1234"),
+//             chunk_sequence_number: 2,
+//             chunk_source: FileUploadChunkSource::ComparisonFileChunk,
+//             chunk_rows: vec![String::from("testing, 1234")],
+//         };
 
-        let actual = sut.upload_file_chunk(&test_request).await;
+//         let actual = sut.reconcile_file_chunk(&test_request).await;
 
-        assert!(actual.is_err());
-    }
-}
+//         assert!(actual.is_err());
+//     }
+// }
