@@ -94,7 +94,7 @@ impl FileChunkUploadService {
     fn transform_into_file_upload_chunk(
         &self,
         upload_file_chunk_request: &UploadFileChunkRequest,
-        original_recon_file_task: &ReconFileMetaData,
+        recon_file_metadata: &ReconFileMetaData,
     ) -> FileUploadChunk {
         FileUploadChunk {
             id: self.generate_uuid(FILE_CHUNK_PREFIX),
@@ -102,9 +102,14 @@ impl FileChunkUploadService {
             chunk_sequence_number: upload_file_chunk_request.chunk_sequence_number.clone(),
             chunk_source: upload_file_chunk_request.chunk_source.clone(),
             chunk_rows: self
-                .transform_into_chunk_rows(&upload_file_chunk_request, original_recon_file_task),
+                .transform_into_chunk_rows(&upload_file_chunk_request, recon_file_metadata),
             date_created: chrono::Utc::now().timestamp(),
             date_modified: chrono::Utc::now().timestamp(),
+            comparison_pairs: recon_file_metadata
+                .recon_task_details
+                .comparison_pairs
+                .clone(),
+            recon_config: recon_file_metadata.recon_task_details.recon_config.clone(),
         }
     }
 
@@ -127,8 +132,9 @@ impl FileChunkUploadService {
 
             let upload_file_columns_in_row: Vec<String> = vec![];
 
-            for delimiter in recon_file_meta_data.column_delimiter {
+            for delimiter in recon_file_meta_data.column_delimiter.clone() {
                 let row_parts: Vec<String> = upload_file_row
+                    .clone()
                     .split(&delimiter)
                     .map(str::to_owned)
                     .collect();

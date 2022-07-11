@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, PartialEq, Eq, Deserialize, Debug)]
 pub struct ReconTaskDetails {
     pub id: String,
     pub source_file_id: String,
@@ -11,7 +11,7 @@ pub struct ReconTaskDetails {
     pub recon_config: ReconciliationConfigs,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, PartialEq, Eq, Deserialize, Debug)]
 pub struct ReconFileMetaData {
     pub id: String,
     pub file_name: String,
@@ -25,7 +25,7 @@ pub struct ReconFileMetaData {
     pub recon_task_details: ReconTaskDetails,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, PartialEq, Clone, Eq, Deserialize, Debug)]
 pub struct ComparisonPair {
     pub source_column_index: usize,
 
@@ -34,7 +34,7 @@ pub struct ComparisonPair {
     pub is_record_id: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, PartialEq, Clone, Eq, Deserialize, Debug)]
 pub struct ReconciliationConfigs {
     pub should_check_for_duplicate_records_in_comparison_file: bool,
 
@@ -45,7 +45,7 @@ pub struct ReconciliationConfigs {
     pub should_do_reverse_reconciliation: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, PartialEq, Eq, Deserialize, Debug)]
 pub enum ReconFileType {
     SourceReconFile,
     ComparisonReconFile,

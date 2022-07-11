@@ -2,7 +2,10 @@ mod external;
 mod internal;
 
 use crate::{
-    external::pubsub::dapr_pubsub_repo::DaprPubSubRepositoryManager,
+    external::{
+        pubsub::dapr_pubsub::DaprPubSubRepositoryManager,
+        repositories::recon_tasks_repo::ReconTasksRepositoryManager,
+    },
     internal::{
         interfaces::file_chunk_upload_service::FileChunkUploadServiceInterface,
         models::{
@@ -38,6 +41,8 @@ struct AppSettings {
     pub dapr_pubsub_primary_file_topic: String,
 
     pub dapr_grpc_server_address: String,
+
+    pub recon_tasks_service_name: String,
 }
 
 #[actix_web::main]
@@ -55,11 +60,20 @@ async fn main() -> std::io::Result<()> {
         let service: Box<dyn FileChunkUploadServiceInterface> = Box::new(FileChunkUploadService {
             file_upload_repo: Box::new(DaprPubSubRepositoryManager {
                 dapr_grpc_server_address: app_settings.dapr_grpc_server_address.clone(),
+
                 dapr_pubsub_name: app_settings.dapr_pubsub_name.clone(),
+
                 dapr_pubsub_comparison_file_topic: app_settings
                     .dapr_pubsub_comparison_file_topic
                     .clone(),
+
                 dapr_pubsub_primary_file_topic: app_settings.dapr_pubsub_primary_file_topic.clone(),
+            }),
+
+            recon_tasks_repo: Box::new(ReconTasksRepositoryManager {
+                dapr_grpc_server_address: app_settings.dapr_grpc_server_address.clone(),
+
+                recon_tasks_service_name: app_settings.recon_tasks_service_name.clone(),
             }),
         });
 
@@ -89,6 +103,9 @@ fn read_app_settings() -> AppSettings {
             .unwrap_or(DEFAULT_DAPR_COMPARISON_FILE_PUBSUB_TOPIC.to_string()),
 
         dapr_grpc_server_address: std::env::var("DAPR_IP")
+            .unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string()),
+
+        recon_tasks_service_name: std::env::var("RECON_TASKS_SERVICE_NAME")
             .unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string()),
     }
 }

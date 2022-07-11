@@ -11,6 +11,7 @@ pub enum AppErrorKind {
     ConnectionError,
     ResponseUnmarshalError,
     BadClientRequest,
+    ServiceResponseError,
 }
 
 impl AppErrorKind {
@@ -23,6 +24,7 @@ impl AppErrorKind {
             ConnectionError => "ConnectionError",
             ResponseUnmarshalError => "ResponseUnmarshalError",
             BadClientRequest => "BadClientRequest",
+            ServiceResponseError => "ServiceResponseError",
         }
     }
 }

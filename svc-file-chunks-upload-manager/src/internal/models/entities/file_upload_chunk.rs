@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::recon_task::{ComparisonPair, ReconciliationConfigs};
+
 //represents a group of lines inside a file
 #[derive(Serialize, PartialEq, Eq, Deserialize, Debug)]
 pub struct FileUploadChunk {
@@ -16,6 +18,10 @@ pub struct FileUploadChunk {
     pub date_created: i64,
 
     pub date_modified: i64,
+
+    pub comparison_pairs: Vec<ComparisonPair>,
+
+    pub recon_config: ReconciliationConfigs,
 }
 
 //represents a line in a file
