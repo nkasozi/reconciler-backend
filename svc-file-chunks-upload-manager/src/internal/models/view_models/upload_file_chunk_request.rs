@@ -2,7 +2,7 @@ use crate::internal::models::entities::file_upload_chunk::FileUploadChunkSource;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
-#[derive(Serialize, Deserialize, Validate, Debug)]
+#[derive(Serialize, Deserialize, Clone, Validate, Debug)]
 pub struct UploadFileChunkRequest {
     #[validate(length(min = 1, message = "please supply an upload_request_id"))]
     pub upload_request_id: String,

@@ -13,6 +13,6 @@ use mockall::automock;
 pub trait FileChunkUploadServiceInterface: Send + Sync {
     async fn upload_file_chunk(
         &self,
-        file_upload_chunk: &UploadFileChunkRequest,
+        file_upload_chunk: UploadFileChunkRequest,
     ) -> Result<UploadFileChunkResponse, AppError>;
 }

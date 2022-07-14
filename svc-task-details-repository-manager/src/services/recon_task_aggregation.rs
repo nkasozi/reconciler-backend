@@ -51,8 +51,11 @@ impl ReconTaskAggregationServiceInterface for ReconTaskAggregationService {
             .await?;
 
         //save recon task details
-        let recon_task_details =
-            &ReconTaskAggregationService::get_recon_task_details(&src_file_id, &cmp_file_id);
+        let recon_task_details = &ReconTaskAggregationService::get_recon_task_details(
+            &src_file_id,
+            &cmp_file_id,
+            &request,
+        );
 
         let task_id = self
             .recon_task_details_repo
@@ -91,11 +94,11 @@ impl ReconTaskAggregationService {
         return ReconFileDetails {
             id: ReconTaskAggregationService::generate_uuid(RECON_FILE_STORE_PREFIX),
             file_name: request.source_file_name.clone(),
-            file_size: request.source_file_column_count * request.source_file_row_count,
             row_count: request.source_file_row_count,
-            column_count: request.source_file_column_count,
             recon_file_type: ReconFileType::SourceReconFile,
             file_hash: request.source_file_hash.clone(),
+            column_delimiters: request.source_file_delimiters.clone(),
+            column_headers: request.source_file_headers.clone(),
         };
     }
 
@@ -103,21 +106,27 @@ impl ReconTaskAggregationService {
         return ReconFileDetails {
             id: ReconTaskAggregationService::generate_uuid(RECON_FILE_STORE_PREFIX),
             file_name: request.comparison_file_name.clone(),
-            file_size: request.comparison_file_column_count * request.comparison_file_row_count,
             row_count: request.comparison_file_row_count,
-            column_count: request.comparison_file_column_count,
             recon_file_type: ReconFileType::ComparisonReconFile,
             file_hash: request.comparison_file_hash.clone(),
+            column_delimiters: request.comparison_file_delimiters.clone(),
+            column_headers: request.comparison_file_headers.clone(),
         };
     }
 
-    fn get_recon_task_details(src_file_id: &String, cmp_file_id: &String) -> ReconTaskDetails {
+    fn get_recon_task_details(
+        src_file_id: &String,
+        cmp_file_id: &String,
+        request: &CreateReconTaskRequest,
+    ) -> ReconTaskDetails {
         return ReconTaskDetails {
             id: ReconTaskAggregationService::generate_uuid(RECON_TASKS_STORE_PREFIX),
             source_file_id: String::from(src_file_id),
             comparison_file_id: String::from(cmp_file_id),
             is_done: false,
-            has_begun: false,
+            has_begun: true,
+            comparison_pairs: request.comparison_pairs,
+            recon_config: request.recon_configurations,
         };
     }
 
@@ -132,10 +141,11 @@ impl ReconTaskAggregationService {
 mod tests {
 
     use crate::services::{
+        entities::{ComparisonPair, ReconciliationConfigs},
         interfaces::{
             MockReconFileDetailsRepositoryInterface, MockReconTaskDetailsRepositoryInterface,
         },
-        view_models::{AppError, AppErrorKind, ReconTaskResponseDetails, ReconciliationConfigs},
+        view_models::{AppError, AppErrorKind, ReconTaskResponseDetails},
     };
 
     use super::*;
@@ -159,6 +169,17 @@ mod tests {
                     comparison_file_id: String::from("cmp-file-1234"),
                     is_done: false,
                     has_begun: false,
+                    comparison_pairs: vec![ComparisonPair {
+                        source_column_index: 0,
+                        comparison_column_index: 0,
+                        is_record_id: true,
+                    }],
+                    recon_config: ReconciliationConfigs {
+                        should_check_for_duplicate_records_in_comparison_file: true,
+                        should_reconciliation_be_case_sensitive: true,
+                        should_ignore_white_space: true,
+                        should_do_reverse_reconciliation: true,
+                    },
                 })
             });
 
@@ -179,10 +200,8 @@ mod tests {
             source_file_name: String::from("test-src-file"),
             source_file_hash: String::from("test-src-file-hash"),
             source_file_row_count: 1000,
-            source_file_column_count: 20,
             comparison_file_name: String::from("test-cmp-file"),
             comparison_file_hash: String::from("test-src-file-hash"),
-            comparison_file_column_count: 2000,
             comparison_file_row_count: 10,
             recon_configurations: ReconciliationConfigs {
                 should_check_for_duplicate_records_in_comparison_file: false,
@@ -191,6 +210,10 @@ mod tests {
                 should_do_reverse_reconciliation: false,
             },
             comparison_pairs: vec![],
+            source_file_headers: vec![],
+            source_file_delimiters: vec![],
+            comparison_file_headers: vec![],
+            comparison_file_delimiters: vec![],
         };
 
         let expected = ReconTaskResponseDetails {
@@ -226,6 +249,17 @@ mod tests {
                     comparison_file_id: String::from("cmp-file-1234"),
                     is_done: false,
                     has_begun: false,
+                    comparison_pairs: vec![ComparisonPair {
+                        source_column_index: 0,
+                        comparison_column_index: 0,
+                        is_record_id: true,
+                    }],
+                    recon_config: ReconciliationConfigs {
+                        should_check_for_duplicate_records_in_comparison_file: true,
+                        should_reconciliation_be_case_sensitive: true,
+                        should_ignore_white_space: true,
+                        should_do_reverse_reconciliation: true,
+                    },
                 })
             });
 
@@ -251,10 +285,8 @@ mod tests {
             source_file_name: String::from("test-src-file"),
             source_file_hash: String::from("test-src-file-hash"),
             source_file_row_count: 1000,
-            source_file_column_count: 20,
             comparison_file_name: String::from("test-cmp-file"),
             comparison_file_hash: String::from("test-src-file-hash"),
-            comparison_file_column_count: 2000,
             comparison_file_row_count: 10,
             recon_configurations: ReconciliationConfigs {
                 should_check_for_duplicate_records_in_comparison_file: false,
@@ -263,6 +295,10 @@ mod tests {
                 should_do_reverse_reconciliation: false,
             },
             comparison_pairs: vec![],
+            source_file_headers: vec![],
+            source_file_delimiters: vec![],
+            comparison_file_headers: vec![],
+            comparison_file_delimiters: vec![],
         };
 
         //act

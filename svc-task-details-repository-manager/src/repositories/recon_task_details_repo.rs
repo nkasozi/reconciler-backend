@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::services::{
-    entities::ReconTaskDetails,
+    entities::{ReconTaskDetails, ReconciliationConfigs},
     interfaces::ReconTaskDetailsRepositoryInterface,
     view_models::{AppError, AppErrorKind},
 };
@@ -82,6 +82,13 @@ impl ReconTaskDetailsRepositoryInterface for ReconTaskDetailsRepositoryManager {
             id: String::from("1234"),
             is_done: false,
             source_file_id: String::from("1234"),
+            comparison_pairs: vec![],
+            recon_config: ReconciliationConfigs {
+                should_check_for_duplicate_records_in_comparison_file: true,
+                should_reconciliation_be_case_sensitive: true,
+                should_ignore_white_space: true,
+                should_do_reverse_reconciliation: true,
+            },
         });
     }
 

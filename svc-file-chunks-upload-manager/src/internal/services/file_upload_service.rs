@@ -1,3 +1,8 @@
+use async_trait::async_trait;
+use std::borrow::BorrowMut;
+use uuid::Uuid;
+use validator::Validate;
+
 use crate::internal::{
     interfaces::{
         file_chunk_upload_service::FileChunkUploadServiceInterface,
@@ -17,9 +22,6 @@ use crate::internal::{
         },
     },
 };
-use async_trait::async_trait;
-use uuid::Uuid;
-use validator::Validate;
 
 const FILE_CHUNK_PREFIX: &'static str = "FILE-CHUNK";
 
@@ -39,7 +41,7 @@ impl FileChunkUploadServiceInterface for FileChunkUploadService {
     */
     async fn upload_file_chunk(
         &self,
-        upload_file_chunk_request: &UploadFileChunkRequest,
+        upload_file_chunk_request: UploadFileChunkRequest,
     ) -> Result<UploadFileChunkResponse, AppError> {
         //validate request
         match upload_file_chunk_request.validate() {
@@ -60,7 +62,7 @@ impl FileChunkUploadServiceInterface for FileChunkUploadService {
 
         //transform into the repo model
         let file_upload_chunk =
-            self.transform_into_file_upload_chunk(upload_file_chunk_request, &recon_file_metadata);
+            self.transform_into_file_upload_chunk(upload_file_chunk_request, recon_file_metadata);
 
         let file_save_result;
 
@@ -93,16 +95,18 @@ impl FileChunkUploadServiceInterface for FileChunkUploadService {
 impl FileChunkUploadService {
     fn transform_into_file_upload_chunk(
         &self,
-        upload_file_chunk_request: &UploadFileChunkRequest,
-        recon_file_metadata: &ReconFileMetaData,
+        upload_file_chunk_request: UploadFileChunkRequest,
+        recon_file_metadata: ReconFileMetaData,
     ) -> FileUploadChunk {
         FileUploadChunk {
             id: self.generate_uuid(FILE_CHUNK_PREFIX),
             upload_request_id: upload_file_chunk_request.upload_request_id.clone(),
             chunk_sequence_number: upload_file_chunk_request.chunk_sequence_number.clone(),
             chunk_source: upload_file_chunk_request.chunk_source.clone(),
-            chunk_rows: self
-                .transform_into_chunk_rows(&upload_file_chunk_request, recon_file_metadata),
+            chunk_rows: self.transform_into_chunk_rows(
+                &mut upload_file_chunk_request.clone(),
+                &mut recon_file_metadata.clone(),
+            ),
             date_created: chrono::Utc::now().timestamp(),
             date_modified: chrono::Utc::now().timestamp(),
             comparison_pairs: recon_file_metadata
@@ -115,84 +119,28 @@ impl FileChunkUploadService {
 
     fn transform_into_chunk_rows(
         &self,
-        upload_file_chunk_request: &UploadFileChunkRequest,
-        recon_file_meta_data: &ReconFileMetaData,
+        upload_file_chunk_request: &mut UploadFileChunkRequest,
+        recon_file_meta_data: &mut ReconFileMetaData,
     ) -> Vec<FileUploadChunkRow> {
-        let parsed_chunk_rows: Vec<FileUploadChunkRow> = vec![];
+        let mut parsed_chunk_rows: Vec<FileUploadChunkRow> = vec![];
 
-        let row_index = 1;
+        let mut row_index = 1;
 
-        for upload_file_row in upload_file_chunk_request.chunk_rows.clone() {
-            let parsed_chunk_row = FileUploadChunkRow {
-                raw_data: upload_file_row,
-                parsed_columns_from_row: vec![],
-                recon_result: ReconStatus::Pending,
-                recon_result_reasons: vec![],
-            };
+        for row_in_upload_file_chunk in &mut upload_file_chunk_request.chunk_rows {
+            let columns_in_row_from_upload_file_chunk = break_up_file_row_using_delimiters(
+                recon_file_meta_data,
+                row_in_upload_file_chunk.borrow_mut(),
+            );
 
-            let upload_file_columns_in_row: Vec<String> = vec![];
+            let parsed_chunk_row = parse_colum_values_from_row(
+                recon_file_meta_data,
+                upload_file_chunk_request.chunk_source,
+                columns_in_row_from_upload_file_chunk,
+                row_in_upload_file_chunk.clone(),
+                row_index,
+            );
 
-            for delimiter in recon_file_meta_data.column_delimiter.clone() {
-                let row_parts: Vec<String> = upload_file_row
-                    .clone()
-                    .split(&delimiter)
-                    .map(str::to_owned)
-                    .collect();
-
-                upload_file_columns_in_row.extend(row_parts);
-            }
-
-            for comparison_pair in recon_file_meta_data.recon_task_details.comparison_pairs {
-                match upload_file_chunk_request.chunk_source {
-                    FileUploadChunkSource::ComparisonFileChunk => {
-                        if comparison_pair.comparison_column_index
-                            > upload_file_columns_in_row.len()
-                        {
-                            //skip this row because the columns we have parsed are not enough
-                            let reason = format!(
-                                "cant find a value in column {} of comparison file for this row {}",
-                                comparison_pair.comparison_column_index, row_index
-                            );
-                            parsed_chunk_row.recon_result = ReconStatus::Failed;
-                            parsed_chunk_row.recon_result_reasons.push(reason);
-                            continue;
-                        }
-
-                        //otherwise add new row to those that have been parsed
-                        let row_column_value =
-                            upload_file_columns_in_row[comparison_pair.comparison_column_index];
-
-                        parsed_chunk_row
-                            .parsed_columns_from_row
-                            .push(row_column_value.clone());
-
-                        continue;
-                    }
-
-                    FileUploadChunkSource::PrimaryFileChunk => {
-                        if comparison_pair.source_column_index > upload_file_columns_in_row.len() {
-                            //skip this row because the columns we have parsed are not enough
-                            let reason = format!(
-                                "cant find a value in column {} of source file for this row {}",
-                                comparison_pair.source_column_index, row_index
-                            );
-                            parsed_chunk_row.recon_result = ReconStatus::Failed;
-                            parsed_chunk_row.recon_result_reasons.push(reason);
-                            continue;
-                        }
-
-                        //otherwise add new row column value to those that have been parsed
-                        let row_column_value =
-                            upload_file_columns_in_row[comparison_pair.source_column_index];
-
-                        parsed_chunk_row
-                            .parsed_columns_from_row
-                            .push(row_column_value.clone());
-
-                        continue;
-                    }
-                }
-            }
+            parsed_chunk_rows.push(parsed_chunk_row);
 
             row_index = row_index + 1;
         }
@@ -205,6 +153,96 @@ impl FileChunkUploadService {
         let full_id = String::from(format!("{}-{}", prefix, id));
         return full_id;
     }
+}
+
+fn parse_colum_values_from_row(
+    recon_file_meta_data: &mut ReconFileMetaData,
+    chunk_source: FileUploadChunkSource,
+    upload_file_columns_in_row: Vec<String>,
+    upload_file_row: String,
+    row_index: i32,
+) -> FileUploadChunkRow {
+    //set up the parsed row in a pending state
+    let mut parsed_chunk_row = FileUploadChunkRow {
+        raw_data: upload_file_row.to_string(),
+        parsed_columns_from_row: vec![],
+        recon_result: ReconStatus::Pending,
+        recon_result_reasons: vec![],
+    };
+
+    for comparison_pair in recon_file_meta_data
+        .recon_task_details
+        .comparison_pairs
+        .clone()
+    {
+        match chunk_source {
+            FileUploadChunkSource::ComparisonFileChunk => {
+                if comparison_pair.comparison_column_index > upload_file_columns_in_row.len() {
+                    //skip this row because the columns we have parsed are not enough
+                    let reason = format!(
+                        "cant find a value in column {} of comparison file for this row {}",
+                        comparison_pair.comparison_column_index, row_index
+                    );
+                    parsed_chunk_row.recon_result = ReconStatus::Failed;
+                    parsed_chunk_row.recon_result_reasons.push(reason);
+                    continue;
+                }
+
+                //otherwise add new row to those that have been parsed
+                let row_column_value = upload_file_columns_in_row
+                    .get(comparison_pair.comparison_column_index)
+                    .unwrap();
+
+                parsed_chunk_row
+                    .parsed_columns_from_row
+                    .push(row_column_value.clone());
+
+                continue;
+            }
+
+            FileUploadChunkSource::PrimaryFileChunk => {
+                if comparison_pair.source_column_index > upload_file_columns_in_row.len() {
+                    //skip this row because the columns we have parsed are not enough
+                    let reason = format!(
+                        "cant find a value in column {} of source file for this row {}",
+                        comparison_pair.source_column_index, row_index
+                    );
+                    parsed_chunk_row.recon_result = ReconStatus::Failed;
+                    parsed_chunk_row.recon_result_reasons.push(reason);
+                    continue;
+                }
+
+                //otherwise add new row column value to those that have been parsed
+                let row_column_value = upload_file_columns_in_row
+                    .get(comparison_pair.source_column_index)
+                    .unwrap();
+
+                parsed_chunk_row
+                    .parsed_columns_from_row
+                    .push(row_column_value.clone());
+
+                continue;
+            }
+        }
+    }
+
+    return parsed_chunk_row;
+}
+
+fn break_up_file_row_using_delimiters(
+    recon_file_meta_data: &mut ReconFileMetaData,
+    upload_file_row: &mut String,
+) -> Vec<String> {
+    let mut upload_file_columns_in_row: Vec<String> = vec![];
+    for delimiter in recon_file_meta_data.column_delimiter.clone() {
+        let row_parts: Vec<String> = upload_file_row
+            .split(&delimiter)
+            .map(str::to_owned)
+            .collect();
+
+        upload_file_columns_in_row.extend(row_parts);
+    }
+    upload_file_columns_in_row
 }
 
 #[cfg(test)]
@@ -228,7 +266,7 @@ mod tests {
     #[actix_rt::test]
     async fn given_valid_request_calls_correct_dependencie_and_returns_success() {
         let mut mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
-        let mut mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
+        let mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
 
         mock_file_upload_repo
             .expect_save_file_upload_chunk_to_comparison_file_queue()
@@ -246,7 +284,7 @@ mod tests {
             chunk_rows: vec![String::from("testing, 1234")],
         };
 
-        let actual = sut.upload_file_chunk(&test_request).await;
+        let actual = sut.upload_file_chunk(test_request).await;
 
         assert!(actual.is_ok());
     }
@@ -254,7 +292,7 @@ mod tests {
     #[actix_rt::test]
     async fn given_invalid_request_returns_error() {
         let mut mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
-        let mut mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
+        let mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
 
         mock_file_upload_repo
             .expect_save_file_upload_chunk_to_comparison_file_queue()
@@ -272,7 +310,7 @@ mod tests {
             chunk_rows: vec![String::from("testing, 1234")],
         };
 
-        let actual = sut.upload_file_chunk(&test_request).await;
+        let actual = sut.upload_file_chunk(test_request).await;
 
         assert!(actual.is_err());
     }
@@ -280,7 +318,7 @@ mod tests {
     #[actix_rt::test]
     async fn given_valid_request_but_repo_returns_error_returns_error() {
         let mut mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
-        let mut mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
+        let mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
 
         mock_file_upload_repo
             .expect_save_file_upload_chunk_to_comparison_file_queue()
@@ -303,7 +341,7 @@ mod tests {
             chunk_rows: vec![String::from("testing, 1234")],
         };
 
-        let actual = sut.upload_file_chunk(&test_request).await;
+        let actual = sut.upload_file_chunk(test_request).await;
 
         assert!(actual.is_err());
     }

@@ -6,7 +6,6 @@ use crate::internal::{
 };
 use async_trait::async_trait;
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
-use std::collections::HashMap;
 use tonic::transport::Channel as TonicChannel;
 
 pub struct ReconTasksRepositoryManager {
