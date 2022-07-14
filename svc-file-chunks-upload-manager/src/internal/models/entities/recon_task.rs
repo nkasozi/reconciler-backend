@@ -16,7 +16,7 @@ pub struct ReconFileMetaData {
     pub id: String,
     pub file_name: String,
     pub row_count: u64,
-    pub column_delimiter: Vec<String>,
+    pub column_delimiters: Vec<String>,
     pub recon_file_type: ReconFileType,
     pub column_headers: Vec<String>,
     pub file_hash: String,

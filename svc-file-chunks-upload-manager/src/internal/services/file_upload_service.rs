@@ -234,7 +234,7 @@ fn break_up_file_row_using_delimiters(
     upload_file_row: &mut String,
 ) -> Vec<String> {
     let mut upload_file_columns_in_row: Vec<String> = vec![];
-    for delimiter in recon_file_meta_data.column_delimiter.clone() {
+    for delimiter in recon_file_meta_data.column_delimiters.clone() {
         let row_parts: Vec<String> = upload_file_row
             .split(&delimiter)
             .map(str::to_owned)
@@ -250,11 +250,17 @@ mod tests {
     use crate::internal::{
         interfaces::{
             file_chunk_upload_service::FileChunkUploadServiceInterface,
-            pubsub_repo::MockPubSubRepositoryInterface,
-            recon_tasks_repo::MockReconTasksRepositoryInterface,
+            pubsub_repo::{MockPubSubRepositoryInterface, PubSubRepositoryInterface},
+            recon_tasks_repo::{MockReconTasksRepositoryInterface, ReconTasksRepositoryInterface},
         },
         models::{
-            entities::app_error::{AppError, AppErrorKind},
+            entities::{
+                app_error::{AppError, AppErrorKind},
+                recon_task::{
+                    ComparisonPair, ReconFileMetaData, ReconFileType, ReconTaskDetails,
+                    ReconciliationConfigs,
+                },
+            },
             view_models::upload_file_chunk_request::UploadFileChunkRequest,
         },
     };
@@ -263,26 +269,87 @@ mod tests {
 
     use super::FileChunkUploadService;
 
+    fn setup() -> (
+        Box<MockPubSubRepositoryInterface>,
+        Box<MockReconTasksRepositoryInterface>,
+    ) {
+        let mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
+        let mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
+        return (mock_file_upload_repo, mock_recon_tasks_repo);
+    }
+
+    fn dummy_success_recon_task_details() -> ReconFileMetaData {
+        ReconFileMetaData {
+            id: String::from("TEST-FILE-1"),
+            file_name: String::from("TEST-FILE-1"),
+            row_count: 1000,
+            column_delimiters: vec![String::from(",")],
+            recon_file_type: ReconFileType::ComparisonReconFile,
+            column_headers: vec![String::from("ID")],
+            file_hash: String::from("SOME-HASH"),
+            recon_task_details: ReconTaskDetails {
+                id: String::from("SOME-RECON-TASK"),
+                source_file_id: String::from("SRC-FILE-1"),
+                comparison_file_id: String::from("CMP-FILE-1"),
+                is_done: false,
+                has_begun: true,
+                comparison_pairs: vec![new_same_column_index_comparison_pair(0)],
+                recon_config: default_recon_configs(),
+            },
+        }
+    }
+
+    fn dummy_valid_test_request() -> UploadFileChunkRequest {
+        UploadFileChunkRequest {
+            upload_request_id: String::from("1234"),
+            chunk_sequence_number: 2,
+            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
+            chunk_rows: vec![String::from("testing, 1234")],
+        }
+    }
+
+    fn setup_service_under_test(
+        pubsub: Box<dyn PubSubRepositoryInterface>,
+        recon_tasks_repo: Box<dyn ReconTasksRepositoryInterface>,
+    ) -> FileChunkUploadService {
+        FileChunkUploadService {
+            file_upload_repo: pubsub,
+            recon_tasks_repo: recon_tasks_repo,
+        }
+    }
+
+    fn default_recon_configs() -> ReconciliationConfigs {
+        ReconciliationConfigs {
+            should_check_for_duplicate_records_in_comparison_file: true,
+            should_reconciliation_be_case_sensitive: true,
+            should_ignore_white_space: true,
+            should_do_reverse_reconciliation: true,
+        }
+    }
+
+    fn new_same_column_index_comparison_pair(column_index: usize) -> ComparisonPair {
+        ComparisonPair {
+            source_column_index: column_index,
+            comparison_column_index: column_index,
+            is_record_id: true,
+        }
+    }
+
     #[actix_rt::test]
     async fn given_valid_request_calls_correct_dependencie_and_returns_success() {
-        let mut mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
-        let mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
+        let (mut mock_file_upload_repo, mut mock_recon_tasks_repo) = setup();
+
+        mock_recon_tasks_repo
+            .expect_get_recon_task_details()
+            .returning(|_y| Ok(dummy_success_recon_task_details()));
 
         mock_file_upload_repo
             .expect_save_file_upload_chunk_to_comparison_file_queue()
             .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
 
-        let sut = FileChunkUploadService {
-            file_upload_repo: mock_file_upload_repo,
-            recon_tasks_repo: mock_recon_tasks_repo,
-        };
+        let sut = setup_service_under_test(mock_file_upload_repo, mock_recon_tasks_repo);
 
-        let test_request = UploadFileChunkRequest {
-            upload_request_id: String::from("1234"),
-            chunk_sequence_number: 2,
-            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
-            chunk_rows: vec![String::from("testing, 1234")],
-        };
+        let test_request = dummy_valid_test_request();
 
         let actual = sut.upload_file_chunk(test_request).await;
 
@@ -291,24 +358,20 @@ mod tests {
 
     #[actix_rt::test]
     async fn given_invalid_request_returns_error() {
-        let mut mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
-        let mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
+        let (mut mock_file_upload_repo, mut mock_recon_tasks_repo) = setup();
+
+        mock_recon_tasks_repo
+            .expect_get_recon_task_details()
+            .returning(|_y| Ok(dummy_success_recon_task_details()));
 
         mock_file_upload_repo
             .expect_save_file_upload_chunk_to_comparison_file_queue()
             .returning(|_y| Ok(String::from("FILE_CHUNK_1234")));
 
-        let sut = FileChunkUploadService {
-            file_upload_repo: mock_file_upload_repo,
-            recon_tasks_repo: mock_recon_tasks_repo,
-        };
+        let sut = setup_service_under_test(mock_file_upload_repo, mock_recon_tasks_repo);
 
-        let test_request = UploadFileChunkRequest {
-            upload_request_id: String::from("1234"),
-            chunk_sequence_number: 0,
-            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
-            chunk_rows: vec![String::from("testing, 1234")],
-        };
+        let mut test_request = dummy_valid_test_request();
+        test_request.chunk_sequence_number = 0;
 
         let actual = sut.upload_file_chunk(test_request).await;
 
@@ -317,8 +380,11 @@ mod tests {
 
     #[actix_rt::test]
     async fn given_valid_request_but_repo_returns_error_returns_error() {
-        let mut mock_file_upload_repo = Box::new(MockPubSubRepositoryInterface::new());
-        let mock_recon_tasks_repo = Box::new(MockReconTasksRepositoryInterface::new());
+        let (mut mock_file_upload_repo, mut mock_recon_tasks_repo) = setup();
+
+        mock_recon_tasks_repo
+            .expect_get_recon_task_details()
+            .returning(|_y| Ok(dummy_success_recon_task_details()));
 
         mock_file_upload_repo
             .expect_save_file_upload_chunk_to_comparison_file_queue()
@@ -329,17 +395,9 @@ mod tests {
                 ))
             });
 
-        let sut = FileChunkUploadService {
-            file_upload_repo: mock_file_upload_repo,
-            recon_tasks_repo: mock_recon_tasks_repo,
-        };
+        let sut = setup_service_under_test(mock_file_upload_repo, mock_recon_tasks_repo);
 
-        let test_request = UploadFileChunkRequest {
-            upload_request_id: String::from("1234"),
-            chunk_sequence_number: 2,
-            chunk_source: FileUploadChunkSource::ComparisonFileChunk,
-            chunk_rows: vec![String::from("testing, 1234")],
-        };
+        let test_request = dummy_valid_test_request();
 
         let actual = sut.upload_file_chunk(test_request).await;
 
