@@ -1,20 +1,26 @@
-use crate::services::{
-    interfaces::ReconTaskAggregationServiceInterface,
-    view_models::{AppErrorKind, CreateReconTaskRequest, GetTaskDetailsRequest},
-};
 use actix_web::{
     get, post,
     web::{self, Data, Path},
     App, HttpResponse, HttpServer,
 };
-use repositories::{
-    recon_file_details_repo::ReconFileDetailsRepositoryManager,
-    recon_task_details_repo::ReconTaskDetailsRepositoryManager,
-};
-use services::recon_task_aggregation::ReconTaskAggregationService;
 
-mod repositories;
-mod services;
+use crate::{
+    external::repositories::{
+        recon_file_details_repo::ReconFileDetailsRepositoryManager,
+        recon_task_details_repo::ReconTaskDetailsRepositoryManager,
+    },
+    internal::{
+        interfaces::recon_tasks_aggregator::ReconTaskAggregationServiceInterface,
+        models::{
+            entities::app_errors::AppErrorKind,
+            view_models::requests::{CreateReconTaskRequest, GetTaskDetailsRequest},
+        },
+        services::recon_tasks_aggregator::ReconTaskAggregationService,
+    },
+};
+
+mod external;
+mod internal;
 
 const DEFAULT_DAPR_CONNECTION_URL: &'static str = "http://localhost:5005";
 const DEFAULT_DAPR_STORE_NAME: &'static str = "statestore";
@@ -98,8 +104,9 @@ mod tests {
         App,
     };
 
-    use crate::services::{
-        interfaces::MockReconTaskAggregationServiceInterface, view_models::ReconTaskResponseDetails,
+    use crate::internal::{
+        interfaces::recon_tasks_aggregator::MockReconTaskAggregationServiceInterface,
+        models::view_models::responses::ReconTaskResponseDetails,
     };
 
     use super::*;

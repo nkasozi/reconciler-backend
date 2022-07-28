@@ -1,21 +1,36 @@
 use async_trait::async_trait;
 
-use crate::services::{
-    entities::{ReconTaskDetails, ReconciliationConfigs},
-    interfaces::ReconTaskDetailsRepositoryInterface,
-    view_models::{AppError, AppErrorKind},
+use crate::internal::{
+    interfaces::recon_files_repository::ReconFileDetailsRepositoryInterface,
+    models::entities::{
+        app_errors::{AppError, AppErrorKind},
+        recon_tasks_models::ReconFileMetaData,
+    },
 };
 
-pub struct ReconTaskDetailsRepositoryManager {
+pub struct ReconFileDetailsRepositoryManager {
     pub connection_url: String,
     pub store_name: String,
 }
 
 #[async_trait]
-impl ReconTaskDetailsRepositoryInterface for ReconTaskDetailsRepositoryManager {
-    async fn get_task_details(&self, task_details: &String) -> Result<ReconTaskDetails, AppError> {
+impl ReconFileDetailsRepositoryInterface for ReconFileDetailsRepositoryManager {
+    fn get_connection_string(&self) -> String {
+        self.connection_url.to_owned()
+    }
+
+    fn get_store_name(&self) -> String {
+        self.store_name.to_owned()
+    }
+
+    async fn get_recon_file_details(
+        &self,
+        file_id: &String,
+    ) -> Result<ReconFileMetaData, AppError> {
         // Create the client
         let connection_url = self.connection_url.clone();
+        let store_name = self.store_name.clone();
+
         let client_connect_result =
             dapr::Client::<dapr::client::TonicClient>::connect(connection_url).await;
 
@@ -27,14 +42,15 @@ impl ReconTaskDetailsRepositoryInterface for ReconTaskDetailsRepositoryManager {
         }
 
         let get_response = client
-            .get_state(self.store_name.clone(), String::from(task_details), None)
+            .get_state(store_name, String::from(file_id), None)
             .await;
 
         match get_response {
             Ok(s) => {
-                let retrieval_result: Result<ReconTaskDetails, _> = serde_json::from_slice(&s.data);
+                let retrieval_result: Result<ReconFileMetaData, _> =
+                    serde_json::from_slice(&s.data);
                 match retrieval_result {
-                    Ok(unmarshalled_task_details) => return Ok(unmarshalled_task_details),
+                    Ok(unmarshalled_file_details) => return Ok(unmarshalled_file_details),
                     Err(e) => return Err(AppError::new(AppErrorKind::NotFound, e.to_string())),
                 };
             }
@@ -42,12 +58,14 @@ impl ReconTaskDetailsRepositoryInterface for ReconTaskDetailsRepositoryManager {
         }
     }
 
-    async fn create_task_details(
+    async fn create_recon_file_details(
         &self,
-        task_details: &ReconTaskDetails,
+        file_details: &ReconFileMetaData,
     ) -> Result<String, AppError> {
         // Create the client
         let connection_url = self.connection_url.clone();
+        let store_name = self.store_name.clone();
+
         let client_connect_result =
             dapr::Client::<dapr::client::TonicClient>::connect(connection_url).await;
 
@@ -58,12 +76,12 @@ impl ReconTaskDetailsRepositoryInterface for ReconTaskDetailsRepositoryManager {
             Err(e) => return Err(AppError::new(AppErrorKind::ConnectionError, e.to_string())),
         }
 
-        let key = task_details.id.clone();
-        let val = serde_json::to_vec(&task_details).unwrap();
+        let key = file_details.id.clone();
+        let val = serde_json::to_vec(&file_details).unwrap();
 
         // save key-value pair in the state store
         let save_result = client
-            .save_state(self.store_name.clone(), vec![(key.clone(), val)])
+            .save_state(store_name, vec![(key.clone(), val)])
             .await;
 
         match save_result {
@@ -72,29 +90,17 @@ impl ReconTaskDetailsRepositoryInterface for ReconTaskDetailsRepositoryManager {
         }
     }
 
-    async fn update_task_details(
+    async fn update_recon_file_details(
         &self,
-        _task_details: &ReconTaskDetails,
-    ) -> Result<ReconTaskDetails, AppError> {
-        return Ok(ReconTaskDetails {
-            comparison_file_id: String::from("1234"),
-            has_begun: false,
-            id: String::from("1234"),
-            is_done: false,
-            source_file_id: String::from("1234"),
-            comparison_pairs: vec![],
-            recon_config: ReconciliationConfigs {
-                should_check_for_duplicate_records_in_comparison_file: true,
-                should_reconciliation_be_case_sensitive: true,
-                should_ignore_white_space: true,
-                should_do_reverse_reconciliation: true,
-            },
-        });
+        _file_details: &ReconFileMetaData,
+    ) -> Result<ReconFileMetaData, AppError> {
+        unimplemented!();
     }
 
-    async fn delete_task_details(&self, task_details_id: &String) -> Result<bool, AppError> {
+    async fn delete_recon_file_details(&self, file_id: &String) -> Result<bool, AppError> {
         // Create the client
         let connection_url = self.connection_url.clone();
+        let store_name = self.store_name.clone();
         let client_connect_result =
             dapr::Client::<dapr::client::TonicClient>::connect(connection_url).await;
 
@@ -107,7 +113,7 @@ impl ReconTaskDetailsRepositoryInterface for ReconTaskDetailsRepositoryManager {
 
         // delete a value from the state store
         let delete_result = client
-            .delete_state(self.store_name.clone(), String::from(task_details_id), None)
+            .delete_state(store_name, String::from(file_id), None)
             .await;
 
         match delete_result {
@@ -115,11 +121,4 @@ impl ReconTaskDetailsRepositoryInterface for ReconTaskDetailsRepositoryManager {
             Err(e) => return Err(AppError::new(AppErrorKind::InternalError, e.to_string())),
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-
-    #[actix_rt::test]
-    async fn given_valid_create_recon_task_request_calls_correct_dependencies_returns_success() {}
 }

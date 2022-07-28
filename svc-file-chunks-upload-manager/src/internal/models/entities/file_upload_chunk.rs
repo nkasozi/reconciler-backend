@@ -6,21 +6,13 @@ use super::recon_task::{ComparisonPair, ReconciliationConfigs};
 #[derive(Serialize, PartialEq, Eq, Deserialize, Debug)]
 pub struct FileUploadChunk {
     pub id: String,
-
     pub upload_request_id: String,
-
     pub chunk_sequence_number: i64,
-
     pub chunk_source: FileUploadChunkSource,
-
     pub chunk_rows: Vec<FileUploadChunkRow>,
-
     pub date_created: i64,
-
     pub date_modified: i64,
-
     pub comparison_pairs: Vec<ComparisonPair>,
-
     pub recon_config: ReconciliationConfigs,
 }
 
@@ -28,11 +20,8 @@ pub struct FileUploadChunk {
 #[derive(Serialize, PartialEq, Eq, Deserialize, Debug)]
 pub struct FileUploadChunkRow {
     pub raw_data: String,
-
     pub parsed_columns_from_row: Vec<String>,
-
     pub recon_result: ReconStatus,
-
     pub recon_result_reasons: Vec<String>,
 }
 

@@ -1,14 +1,21 @@
-use super::{
-    entities::{ReconFileDetails, ReconFileType, ReconTaskDetails},
-    interfaces::{
-        ReconFileDetailsRepositoryInterface, ReconTaskAggregationServiceInterface,
-        ReconTaskDetailsRepositoryInterface,
-    },
-    view_models::{AppError, AppErrorKind, CreateReconTaskRequest, ReconTaskResponseDetails},
-};
 use async_trait::async_trait;
 use uuid::Uuid;
 use validator::Validate;
+
+use crate::internal::{
+    interfaces::{
+        recon_files_repository::ReconFileDetailsRepositoryInterface,
+        recon_tasks_aggregator::ReconTaskAggregationServiceInterface,
+        recon_tasks_repository::ReconTaskDetailsRepositoryInterface,
+    },
+    models::{
+        entities::{
+            app_errors::{AppError, AppErrorKind},
+            recon_tasks_models::{ReconFileMetaData, ReconFileType, ReconTaskDetails},
+        },
+        view_models::{requests::CreateReconTaskRequest, responses::ReconTaskResponseDetails},
+    },
+};
 
 const RECON_FILE_STORE_PREFIX: &'static str = "RECON-FILE";
 const RECON_TASKS_STORE_PREFIX: &'static str = "RECON-TASK";
@@ -90,8 +97,8 @@ impl ReconTaskAggregationServiceInterface for ReconTaskAggregationService {
 }
 
 impl ReconTaskAggregationService {
-    fn get_src_file_details(request: &CreateReconTaskRequest) -> ReconFileDetails {
-        return ReconFileDetails {
+    fn get_src_file_details(request: &CreateReconTaskRequest) -> ReconFileMetaData {
+        return ReconFileMetaData {
             id: ReconTaskAggregationService::generate_uuid(RECON_FILE_STORE_PREFIX),
             file_name: request.source_file_name.clone(),
             row_count: request.source_file_row_count,
@@ -102,8 +109,8 @@ impl ReconTaskAggregationService {
         };
     }
 
-    fn get_comparison_file_details(request: &CreateReconTaskRequest) -> ReconFileDetails {
-        return ReconFileDetails {
+    fn get_comparison_file_details(request: &CreateReconTaskRequest) -> ReconFileMetaData {
+        return ReconFileMetaData {
             id: ReconTaskAggregationService::generate_uuid(RECON_FILE_STORE_PREFIX),
             file_name: request.comparison_file_name.clone(),
             row_count: request.comparison_file_row_count,
@@ -125,8 +132,8 @@ impl ReconTaskAggregationService {
             comparison_file_id: String::from(cmp_file_id),
             is_done: false,
             has_begun: true,
-            comparison_pairs: request.comparison_pairs,
-            recon_config: request.recon_configurations,
+            comparison_pairs: request.comparison_pairs.clone(),
+            recon_config: request.recon_configurations.clone(),
         };
     }
 
@@ -140,12 +147,12 @@ impl ReconTaskAggregationService {
 #[cfg(test)]
 mod tests {
 
-    use crate::services::{
-        entities::{ComparisonPair, ReconciliationConfigs},
+    use crate::internal::{
         interfaces::{
-            MockReconFileDetailsRepositoryInterface, MockReconTaskDetailsRepositoryInterface,
+            recon_files_repository::MockReconFileDetailsRepositoryInterface,
+            recon_tasks_repository::MockReconTaskDetailsRepositoryInterface,
         },
-        view_models::{AppError, AppErrorKind, ReconTaskResponseDetails},
+        models::entities::recon_tasks_models::{ComparisonPair, ReconciliationConfigs},
     };
 
     use super::*;
@@ -172,7 +179,7 @@ mod tests {
                     comparison_pairs: vec![ComparisonPair {
                         source_column_index: 0,
                         comparison_column_index: 0,
-                        is_record_id: true,
+                        is_row_identifier: true,
                     }],
                     recon_config: ReconciliationConfigs {
                         should_check_for_duplicate_records_in_comparison_file: true,
@@ -209,11 +216,15 @@ mod tests {
                 should_ignore_white_space: true,
                 should_do_reverse_reconciliation: false,
             },
-            comparison_pairs: vec![],
-            source_file_headers: vec![],
-            source_file_delimiters: vec![],
-            comparison_file_headers: vec![],
-            comparison_file_delimiters: vec![],
+            comparison_pairs: vec![ComparisonPair {
+                source_column_index: 0,
+                comparison_column_index: 0,
+                is_row_identifier: true,
+            }],
+            source_file_headers: vec![String::from("src-file-header-1")],
+            source_file_delimiters: vec![String::from(",")],
+            comparison_file_headers: vec![String::from("cmp-file-header-1")],
+            comparison_file_delimiters: vec![String::from(",")],
         };
 
         let expected = ReconTaskResponseDetails {
@@ -252,7 +263,7 @@ mod tests {
                     comparison_pairs: vec![ComparisonPair {
                         source_column_index: 0,
                         comparison_column_index: 0,
-                        is_record_id: true,
+                        is_row_identifier: true,
                     }],
                     recon_config: ReconciliationConfigs {
                         should_check_for_duplicate_records_in_comparison_file: true,

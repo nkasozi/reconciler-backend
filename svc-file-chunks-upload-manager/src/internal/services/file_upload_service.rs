@@ -256,6 +256,7 @@ mod tests {
         models::{
             entities::{
                 app_error::{AppError, AppErrorKind},
+                file_upload_chunk::FileUploadChunkSource,
                 recon_task::{
                     ComparisonPair, ReconFileMetaData, ReconFileType, ReconTaskDetails,
                     ReconciliationConfigs,
@@ -264,8 +265,6 @@ mod tests {
             view_models::upload_file_chunk_request::UploadFileChunkRequest,
         },
     };
-
-    use crate::internal::models::entities::file_upload_chunk::FileUploadChunkSource;
 
     use super::FileChunkUploadService;
 
@@ -331,7 +330,7 @@ mod tests {
         ComparisonPair {
             source_column_index: column_index,
             comparison_column_index: column_index,
-            is_record_id: true,
+            is_row_identifier: true,
         }
     }
 
