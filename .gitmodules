@@ -7,3 +7,6 @@
 [submodule "svc-file-chunks-upload-manager"]
 	path = svc-file-chunks-upload-manager
 	url = https://github.com/nkasozi/svc-file-chunks-upload-manager.git
+[submodule "api-reconciliation-tasks-handler"]
+	path = api-reconciliation-tasks-handler
+	url = https://github.com/nkasozi/api-reconciliation-tasks-handler.git
