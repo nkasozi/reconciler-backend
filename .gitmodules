@@ -10,3 +10,6 @@
 [submodule "api-reconciliation-tasks-handler"]
 	path = api-reconciliation-tasks-handler
 	url = https://github.com/nkasozi/api-reconciliation-tasks-handler.git
+[submodule "svc-records-reconciliation-processor"]
+	path = svc-records-reconciliation-processor
+	url = https://github.com/nkasozi/svc-records-reconciliation-processor.git
