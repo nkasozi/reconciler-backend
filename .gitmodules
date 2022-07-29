@@ -1,0 +1,3 @@
+[submodule "svc-task-details-repository-manager"]
+	path = svc-task-details-repository-manager
+	url = https://github.com/nkasozi/svc-task-details-repository-manager.git
