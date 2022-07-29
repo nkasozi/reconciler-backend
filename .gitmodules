@@ -13,3 +13,6 @@
 [submodule "svc-records-reconciliation-processor"]
 	path = svc-records-reconciliation-processor
 	url = https://github.com/nkasozi/svc-records-reconciliation-processor.git
+[submodule "svc-file-reader-processor"]
+	path = svc-file-reader-processor
+	url = https://github.com/nkasozi/svc-file-reader-processor.git
