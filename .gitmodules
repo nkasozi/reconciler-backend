@@ -4,3 +4,6 @@
 [submodule "svc-results-repository-manager"]
 	path = svc-results-repository-manager
 	url = https://github.com/nkasozi/svc-results-repository-manager.git
+[submodule "svc-file-chunks-upload-manager"]
+	path = svc-file-chunks-upload-manager
+	url = https://github.com/nkasozi/svc-file-chunks-upload-manager.git
