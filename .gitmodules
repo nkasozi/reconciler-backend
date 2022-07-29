@@ -16,3 +16,6 @@
 [submodule "svc-file-reader-processor"]
 	path = svc-file-reader-processor
 	url = https://github.com/nkasozi/svc-file-reader-processor.git
+[submodule "svc-results-notification-processor"]
+	path = svc-results-notification-processor
+	url = https://github.com/nkasozi/svc-results-notification-processor.git
