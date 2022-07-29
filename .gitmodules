@@ -1,3 +1,6 @@
 [submodule "svc-task-details-repository-manager"]
 	path = svc-task-details-repository-manager
 	url = https://github.com/nkasozi/svc-task-details-repository-manager.git
+[submodule "svc-results-repository-manager"]
+	path = svc-results-repository-manager
+	url = https://github.com/nkasozi/svc-results-repository-manager.git
