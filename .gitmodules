@@ -1,0 +1,21 @@
+[submodule "svc-task-details-repository-manager"]
+	path = svc-task-details-repository-manager
+	url = https://github.com/nkasozi/svc-task-details-repository-manager.git
+[submodule "svc-results-repository-manager"]
+	path = svc-results-repository-manager
+	url = https://github.com/nkasozi/svc-results-repository-manager.git
+[submodule "svc-file-chunks-upload-manager"]
+	path = svc-file-chunks-upload-manager
+	url = https://github.com/nkasozi/svc-file-chunks-upload-manager.git
+[submodule "api-reconciliation-tasks-handler"]
+	path = api-reconciliation-tasks-handler
+	url = https://github.com/nkasozi/api-reconciliation-tasks-handler.git
+[submodule "svc-records-reconciliation-processor"]
+	path = svc-records-reconciliation-processor
+	url = https://github.com/nkasozi/svc-records-reconciliation-processor.git
+[submodule "svc-file-reader-processor"]
+	path = svc-file-reader-processor
+	url = https://github.com/nkasozi/svc-file-reader-processor.git
+[submodule "svc-results-notification-processor"]
+	path = svc-results-notification-processor
+	url = https://github.com/nkasozi/svc-results-notification-processor.git
