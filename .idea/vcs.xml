@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/api-reconciliation-tasks-handler" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-file-chunks-upload-manager" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-file-chunks-upload-manager/src/internal/shared_reconciler_rust_libraries" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-file-reader-processor" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-file-reader-processor/src/internal/shared_reconciler_rust_libraries" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-records-reconciliation-processor" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-records-reconciliation-processor/src/internal/shared_reconciler_rust_libraries" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-results-notification-processor" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-results-repository-manager" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-results-repository-manager/src/internal/shared_reconciler_rust_libraries" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-task-details-repository-manager" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/svc-task-details-repository-manager/src/internal/shared_reconciler_rust_libraries" vcs="Git" />
+  </component>
+</project>
